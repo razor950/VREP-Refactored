@@ -2,6 +2,8 @@
 
 #pragma once
 
+// Includes
+
 // Unreal
 #include "CoreMinimal.h"
 #include "DrawDebugHelpers.h"
@@ -26,7 +28,12 @@
 *
 */
 UCLASS(Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = (VRExpansionPlugin))
-class VREXPANSIONPLUGIN_API AGrippableActor : public AActor, public IVRGripInterface, public IGameplayTagAssetInterface
+class VREXPANSIONPLUGIN_API AGrippableActor : 
+	// Parent
+	public AActor, 
+	
+	// Interfaces
+	public IGameplayTagAssetInterface, public IVRGripInterface
 {
 	GENERATED_BODY()
 
@@ -61,9 +68,6 @@ public:
 		}
 	}
 
-	// Sets the Deny Gripping variable on the FBPInterfaceSettings struct.
-	UFUNCTION(BlueprintCallable, Category = "VRGripInterface")
-		void SetDenyGripping(bool bDenyGripping);
 
 	// ------------------------------------------------
 	// Client Auth Throwing Data and functions 
@@ -77,7 +81,7 @@ public:
 
 	// Notify the server that we locally gripped something
 	UFUNCTION(UnReliable, Server, WithValidation, Category = "Networking")
-		void Server_GetClientAuthReplication(const FRepMovementVR & newMovement);
+		void Server_GetClientAuthReplication(const FRepMovementVR& newMovement);
 
 	// End client auth throwing data and functions. //
 
@@ -110,11 +114,11 @@ public:
 	// Clean up our objects so that they aren't sitting around for GC.
 	virtual void PreDestroyFromReplication() override;
 
-	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
+	virtual void PreReplication(IRepChangedPropertyTracker& ChangedPropertyTracker) override;
 
 	void PostNetReceivePhysicState() override;
 
-	bool ReplicateSubobjects(UActorChannel* Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags) override;
+	bool ReplicateSubobjects(UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
 
 	// ------------------------------------------------
@@ -150,11 +154,11 @@ public:
 
 	// Get grip scripts.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
-		bool GetGripScripts(TArray<UVRGripScriptBase*> & ArrayReference);
+		bool GetGripScripts(TArray<UVRGripScriptBase*>& ArrayReference);
 
 	// What grip stiffness and damping to use if using a physics constraint.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
-		void GetGripStiffnessAndDamping(float &GripStiffnessOut, float &GripDampingOut);
+		void GetGripStiffnessAndDamping(float&GripStiffnessOut, float& GripDampingOut);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") float                            GripBreakDistance          ();   // What distance to break a grip at (only relevent with physics enabled grips.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") EGripLateUpdateSettings          GripLateUpdateSetting      ();   // Define the late update setting.
@@ -166,7 +170,7 @@ public:
 
 	// Returns if the object is held and if so, which controllers are holding it.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
-		void IsHeld(TArray<FBPGripPair> & HoldingControllers, bool & bIsHeld);
+		void IsHeld(TArray<FBPGripPair>& HoldingControllers, bool& bIsHeld);
 
 	// Returns if the object wants to be socketed.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
@@ -176,9 +180,13 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
 		ESecondaryGripType SecondaryGripType();
 
+	// Sets the Deny Gripping variable on the FBPInterfaceSettings struct.
+	UFUNCTION(BlueprintCallable, Category = "VRGripInterface")
+		void SetDenyGripping(bool bDenyGripping);
+
 	// Sets is held, used by the plugin.
 	UFUNCTION(BlueprintNativeEvent, /*BlueprintCallable,*/ Category = "VRGripInterface")
-		void SetHeld(UGripMotionControllerComponent * HoldingController, uint8 GripID, bool bIsHeld);
+		void SetHeld(UGripMotionControllerComponent* HoldingController, uint8 GripID, bool bIsHeld);
 
 	// Should this object simulate on drop.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
@@ -192,31 +200,31 @@ public:
 
 	// Event triggered on the interfaced object when child component is gripped.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnChildGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation);
+		void OnChildGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation& GripInformation);
 
 	// Event triggered on the interfaced object when child component is released.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnChildGripRelease(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed = false);
+		void OnChildGripRelease(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed = false);
 
 	// Event triggered on the interfaced object when gripped.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation);
+		void OnGrip(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation);
 
 	// Event triggered on the interfaced object when grip is released.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnGripRelease(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed = false);
+		void OnGripRelease(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed = false);
 
 	// Event triggered on the interfaced object when secondary gripped.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnSecondaryGrip(USceneComponent * SecondaryGripComponent, const FBPActorGripInformation & GripInformation);
+		void OnSecondaryGrip(USceneComponent* SecondaryGripComponent, const FBPActorGripInformation& GripInformation);
 
 	// Event triggered on the interfaced object when secondary grip is released.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnSecondaryGripRelease(USceneComponent * ReleasingSecondaryGripComponent, const FBPActorGripInformation & GripInformation);
+		void OnSecondaryGripRelease(USceneComponent* ReleasingSecondaryGripComponent, const FBPActorGripInformation& GripInformation);
 
 	// Event triggered each tick on the interfaced object when gripped, can be used for custom movement or grip based logic.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void TickGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation, float DeltaTime);
+		void TickGrip(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation, float DeltaTime);
 
 	// Interaction Functions
 
@@ -253,7 +261,7 @@ public:
 	// IVRGripInterface
 
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadOnly, Instanced, Category = "VRGripInterface")
-		TArray<class UVRGripScriptBase *> GripLogicScripts;
+		TArray<class UVRGripScriptBase*> GripLogicScripts;
 
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadWrite, Category = "VRGripInterface") bool                   bRepGripSettingsAndGameplayTags;
 	UPROPERTY(EditAnywhere, Replicated, BlueprintReadWrite, Category = "VRGripInterface") FBPInterfaceProperties VRGripInterfaceSettings        ;

@@ -7,18 +7,32 @@
 #include "UObject/ObjectMacros.h"
 #include "UObject/Interface.h"
 
-// I cannot dynamic cast without RTTI so I am using a static var as a declarative in case the user removed our custom replicator
-// We don't want our casts to cause issues.
+// VREP
+
+
+
+// Cpp Only
+
+// I cannot dynamic cast without RTTI so I am using a static var as a declarative in case the user removed our custom replicator.
+// We don't want our casts to cause issues..
 namespace VRPhysicsReplicationStatics
 {
 	static bool bHasVRPhysicsReplication = false;
 }
 
-FPhysicsReplicationVR::FPhysicsReplicationVR(FPhysScene* PhysScene) :
-	FPhysicsReplication(PhysScene)
+
+// FPhysicsReplicationVR
+
+// Public
+
+// Constructor
+
+FPhysicsReplicationVR::FPhysicsReplicationVR(FPhysScene* PhysScene) : FPhysicsReplication(PhysScene)
 {
 	VRPhysicsReplicationStatics::bHasVRPhysicsReplication = true;
 }
+
+// Functions
 
 bool FPhysicsReplicationVR::IsInitialized()
 {

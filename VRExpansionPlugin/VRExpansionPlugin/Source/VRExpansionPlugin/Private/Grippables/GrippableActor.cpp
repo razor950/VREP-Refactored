@@ -7,6 +7,12 @@
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
 
+// VREP
+
+
+
+// AGRippableActor
+
 // Public
 
 // Constructor & Destructor
@@ -49,10 +55,7 @@ AGrippableActor::~AGrippableActor()
 
 // Functions
 
-void AGrippableActor::SetDenyGripping(bool bDenyGripping)
-{
-	VRGripInterfaceSettings.bDenyGripping = bDenyGripping;
-}
+
 
 // ------------------------------------------------
 // Client Auth Throwing Data and functions 
@@ -343,7 +346,7 @@ void AGrippableActor::PostNetReceivePhysicState()
 	Super::PostNetReceivePhysicState();
 }
 
-bool AGrippableActor::ReplicateSubobjects(UActorChannel* Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
+bool AGrippableActor::ReplicateSubobjects(UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags)
 {
 	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
 
@@ -450,6 +453,11 @@ ESecondaryGripType AGrippableActor::SecondaryGripType_Implementation()
 	return VRGripInterfaceSettings.SecondaryGripType;
 }
 
+void AGrippableActor::SetDenyGripping(bool bDenyGripping)
+{
+	VRGripInterfaceSettings.bDenyGripping = bDenyGripping;
+}
+
 void AGrippableActor::SetHeld_Implementation(UGripMotionControllerComponent* HoldingController, uint8 GripID, bool bIsHeld)
 {
 	if (bIsHeld)
@@ -524,7 +532,7 @@ void AGrippableActor::OnUsed_Implementation         () {}
 
 // CPP only... (IDK why). -Ed.
 
-void AGrippableActor::GetLifetimeReplicatedProps(TArray< class FLifetimeProperty > & OutLifetimeProps) const
+void AGrippableActor::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 

@@ -6,26 +6,39 @@
 // Unreal
 #include "Net/UnrealNetwork.h"
 
+// VREP
+
+
+
+// UGrippableCapsuleComponent
+
+// Public
+
+// Constructor & Destructor
+
   //=============================================================================
-UGrippableCapsuleComponent::UGrippableCapsuleComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UGrippableCapsuleComponent::UGrippableCapsuleComponent(const FObjectInitializer& ObjectInitializer) : 
+	Super                          (ObjectInitializer),
+	bRepGripSettingsAndGameplayTags(true             ),
+	bReplicateMovement             (false            )
 {
-	VRGripInterfaceSettings.bDenyGripping = false;
-	VRGripInterfaceSettings.OnTeleportBehavior = EGripInterfaceTeleportBehavior::DropOnTeleport;
-	VRGripInterfaceSettings.bSimulateOnDrop = true;
-	VRGripInterfaceSettings.SlotDefaultGripType = EGripCollisionType::ManipulationGrip;
-	VRGripInterfaceSettings.FreeDefaultGripType = EGripCollisionType::ManipulationGrip;
-	VRGripInterfaceSettings.SecondaryGripType = ESecondaryGripType::SG_None;
+	VRGripInterfaceSettings.bDenyGripping           = false                                                    ;
+	VRGripInterfaceSettings.bIsHeld                 = false                                                    ;
+	VRGripInterfaceSettings.bSimulateOnDrop         = true                                                     ;
+	VRGripInterfaceSettings.ConstraintBreakDistance = 100.0f                                                   ;
+	VRGripInterfaceSettings.ConstraintDamping       = 200.0f                                                   ;
+	VRGripInterfaceSettings.ConstraintStiffness     = 1500.0f                                                  ;
+	VRGripInterfaceSettings.FreeDefaultGripType     = EGripCollisionType::ManipulationGrip                     ;
+	VRGripInterfaceSettings.LateUpdateSetting       = EGripLateUpdateSettings::LateUpdatesAlwaysOff            ;
+	VRGripInterfaceSettings.OnTeleportBehavior      = EGripInterfaceTeleportBehavior::DropOnTeleport           ;
 	VRGripInterfaceSettings.MovementReplicationType = EGripMovementReplicationSettings::ForceClientSideMovement;
-	VRGripInterfaceSettings.LateUpdateSetting = EGripLateUpdateSettings::LateUpdatesAlwaysOff;
-	VRGripInterfaceSettings.ConstraintStiffness = 1500.0f;
-	VRGripInterfaceSettings.ConstraintDamping = 200.0f;
-	VRGripInterfaceSettings.ConstraintBreakDistance = 100.0f;
-	VRGripInterfaceSettings.SecondarySlotRange = 20.0f;
-	VRGripInterfaceSettings.PrimarySlotRange = 20.0f;
+	VRGripInterfaceSettings.PrimarySlotRange        = 20.0f                                                    ;
+	VRGripInterfaceSettings.SecondaryGripType       = ESecondaryGripType::SG_None                              ;
+	VRGripInterfaceSettings.SecondarySlotRange      = 20.0f                                                    ;
+	VRGripInterfaceSettings.SlotDefaultGripType     = EGripCollisionType::ManipulationGrip                     ;
 
-	VRGripInterfaceSettings.bIsHeld = false;
 
+	// Moved to direct initialization -Ed.
 	bReplicateMovement = false;
 	//this->bReplicates = true;
 
@@ -35,48 +48,17 @@ UGrippableCapsuleComponent::UGrippableCapsuleComponent(const FObjectInitializer&
 UGrippableCapsuleComponent::~UGrippableCapsuleComponent()
 {}
 
-void UGrippableCapsuleComponent::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
-{
-	Super::PreReplication(ChangedPropertyTracker);
-
-	// Don't replicate if set to not do it
-	DOREPLIFETIME_ACTIVE_OVERRIDE(UGrippableCapsuleComponent, VRGripInterfaceSettings, bRepGripSettingsAndGameplayTags);
-	DOREPLIFETIME_ACTIVE_OVERRIDE(UGrippableCapsuleComponent, GameplayTags, bRepGripSettingsAndGameplayTags);
-
-	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeLocation, bReplicateMovement);
-	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeRotation, bReplicateMovement);
-	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeScale3D, bReplicateMovement);
-}
-
-bool UGrippableCapsuleComponent::ReplicateSubobjects(UActorChannel* Channel, class FOutBunch *Bunch, FReplicationFlags *RepFlags)
-{
-	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
-
-	for (UVRGripScriptBase* Script : GripLogicScripts)
-	{
-		if (Script && !Script->IsPendingKill())
-		{
-			WroteSomething |= Channel->ReplicateSubobject(Script, *Bunch, *RepFlags);
-		}
-	}
-
-	return WroteSomething;
-}
 
 // Functions
-void UGrippableCapsuleComponent::SetDenyGripping(bool bDenyGripping)
-{
-	VRGripInterfaceSettings.bDenyGripping = bDenyGripping;
-}
 
-// Actor Overloads
+// UCapsuleComponent Overloads
 
 void UGrippableCapsuleComponent::BeginPlay()
 {
-	// Call the base class 
+	// Call the base class.
 	Super::BeginPlay();
 
-	// Call all grip scripts begin play events so they can perform any needed logic
+	// Call all grip scripts begin play events so they can perform any needed logic.
 	for (UVRGripScriptBase* Script : GripLogicScripts)
 	{
 		if (Script)
@@ -103,28 +85,11 @@ void UGrippableCapsuleComponent::EndPlay(const EEndPlayReason::Type EndPlayReaso
 	}
 }
 
-void UGrippableCapsuleComponent::PreDestroyFromReplication()
-{
-	Super::PreDestroyFromReplication();
-
-	// Destroy any sub-objects we created
-	for (int32 i = 0; i < GripLogicScripts.Num(); ++i)
-	{
-		if (UObject *SubObject = GripLogicScripts[i])
-		{
-			SubObject->PreDestroyFromReplication();
-			SubObject->MarkPendingKill();
-		}
-	}
-
-	GripLogicScripts.Empty();
-}
-
 void UGrippableCapsuleComponent::GetSubobjectsWithStableNamesForNetworking(TArray<UObject*>& ObjList)
 {
-	for (int32 i = 0; i < GripLogicScripts.Num(); ++i)
+	for (int32 scriptIndex = 0; scriptIndex < GripLogicScripts.Num(); ++scriptIndex)
 	{
-		if (UObject *SubObject = GripLogicScripts[i])
+		if (UObject* SubObject = GripLogicScripts[scriptIndex])
 		{
 			ObjList.Add(SubObject);
 		}
@@ -133,28 +98,74 @@ void UGrippableCapsuleComponent::GetSubobjectsWithStableNamesForNetworking(TArra
 
 void UGrippableCapsuleComponent::OnComponentDestroyed(bool bDestroyingHierarchy)
 {
-	// Call the super at the end, after we've done what we needed to do
+	// Call the super at the end, after we've done what we needed to do.
 	Super::OnComponentDestroyed(bDestroyingHierarchy);
 
-	// Don't set these in editor preview window and the like, it causes saving issues
-	if (UWorld * World = GetWorld())
+	// Don't set these in editor preview window and the like, it causes saving issues.
+	if (UWorld* World = GetWorld())
 	{
 		EWorldType::Type WorldType = World->WorldType;
+
 		if (WorldType == EWorldType::Editor || WorldType == EWorldType::EditorPreview)
 		{
 			return;
 		}
 	}
 
-	for (int32 i = 0; i < GripLogicScripts.Num(); i++)
+	for (int32 scriptIndex = 0; scriptIndex < GripLogicScripts.Num(); scriptIndex++)
 	{
-		if (UObject *SubObject = GripLogicScripts[i])
+		if (UObject* SubObject = GripLogicScripts[scriptIndex])
 		{
 			SubObject->MarkPendingKill();
 		}
 	}
 
 	GripLogicScripts.Empty();
+}
+
+void UGrippableCapsuleComponent::PreDestroyFromReplication()
+{
+	Super::PreDestroyFromReplication();
+
+	// Destroy any sub-objects we created.
+	for (int32 scriptIndex = 0; scriptIndex < GripLogicScripts.Num(); ++scriptIndex)
+	{
+		if (UObject *SubObject = GripLogicScripts[scriptIndex])
+		{
+			SubObject->PreDestroyFromReplication();
+			SubObject->MarkPendingKill          ();
+		}
+	}
+
+	GripLogicScripts.Empty();
+}
+
+void UGrippableCapsuleComponent::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
+{
+	Super::PreReplication(ChangedPropertyTracker);
+
+	// Don't replicate if set to not do it
+	DOREPLIFETIME_ACTIVE_OVERRIDE(UGrippableCapsuleComponent, VRGripInterfaceSettings, bRepGripSettingsAndGameplayTags);
+	DOREPLIFETIME_ACTIVE_OVERRIDE(UGrippableCapsuleComponent, GameplayTags           , bRepGripSettingsAndGameplayTags);
+
+	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeLocation, bReplicateMovement);
+	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeRotation, bReplicateMovement);
+	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeScale3D, bReplicateMovement);
+}
+
+bool UGrippableCapsuleComponent::ReplicateSubobjects(UActorChannel* Channel, class FOutBunch*Bunch, FReplicationFlags* RepFlags)
+{
+	bool WroteSomething = Super::ReplicateSubobjects(Channel, Bunch, RepFlags);
+
+	for (UVRGripScriptBase* Script : GripLogicScripts)
+	{
+		if (Script && !Script->IsPendingKill())
+		{
+			WroteSomething |= Channel->ReplicateSubobject(Script, *Bunch, *RepFlags);
+		}
+	}
+
+	return WroteSomething;
 }
 
 // IVRGripInterface Implementation
@@ -169,12 +180,30 @@ bool UGrippableCapsuleComponent::AllowsMultipleGrips_Implementation()
 	return VRGripInterfaceSettings.bAllowMultipleGrips;
 }
 
-void UGrippableCapsuleComponent::ClosestGripSlotInRange_Implementation(FVector WorldLocation, bool bSecondarySlot, bool& bHadSlotInRange, FTransform& SlotWorldTransform, UGripMotionControllerComponent* CallingController, FName OverridePrefix)
+void UGrippableCapsuleComponent::ClosestGripSlotInRange_Implementation
+(
+	FVector                         WorldLocation     , 
+	bool                            bSecondarySlot    , 
+	bool&                           bHadSlotInRange   , 
+	FTransform&                     SlotWorldTransform, 
+	UGripMotionControllerComponent* CallingController , 
+	FName                           OverridePrefix
+)
 {
 	if (OverridePrefix.IsNone())
+	{
 		bSecondarySlot ? OverridePrefix = "VRGripS" : OverridePrefix = "VRGripP";
+	}
 
-	UVRExpansionFunctionLibrary::GetGripSlotInRangeByTypeName_Component(OverridePrefix, this, WorldLocation, bSecondarySlot ? VRGripInterfaceSettings.SecondarySlotRange : VRGripInterfaceSettings.PrimarySlotRange, bHadSlotInRange, SlotWorldTransform);
+	UVRExpansionFunctionLibrary::GetGripSlotInRangeByTypeName_Component
+	(
+		OverridePrefix                                                                                        , 
+		this                                                                                                  , 
+		WorldLocation                                                                                         , 
+		bSecondarySlot ? VRGripInterfaceSettings.SecondarySlotRange : VRGripInterfaceSettings.PrimarySlotRange, 
+		bHadSlotInRange                                                                                       ,
+		SlotWorldTransform
+	);
 }
 
 bool UGrippableCapsuleComponent::DenyGripping_Implementation()
@@ -185,13 +214,14 @@ bool UGrippableCapsuleComponent::DenyGripping_Implementation()
 bool UGrippableCapsuleComponent::GetGripScripts_Implementation(TArray<UVRGripScriptBase*>& ArrayReference)
 {
 	ArrayReference = GripLogicScripts;
+	
 	return GripLogicScripts.Num() > 0;
 }
 
 void UGrippableCapsuleComponent::GetGripStiffnessAndDamping_Implementation(float& GripStiffnessOut, float& GripDampingOut)
 {
 	GripStiffnessOut = VRGripInterfaceSettings.ConstraintStiffness;
-	GripDampingOut = VRGripInterfaceSettings.ConstraintDamping;
+	GripDampingOut   = VRGripInterfaceSettings.ConstraintDamping  ;
 }
 
 EGripCollisionType UGrippableCapsuleComponent::GetPrimaryGripType_Implementation(bool bIsSlot)
@@ -217,12 +247,17 @@ EGripMovementReplicationSettings UGrippableCapsuleComponent::GripMovementReplica
 void UGrippableCapsuleComponent::IsHeld_Implementation(TArray<FBPGripPair>& HoldingControllers, bool& bIsHeld)
 {
 	HoldingControllers = VRGripInterfaceSettings.HoldingControllers;
-	bIsHeld = VRGripInterfaceSettings.bIsHeld;
+	bIsHeld            = VRGripInterfaceSettings.bIsHeld           ;
 }
 
 ESecondaryGripType UGrippableCapsuleComponent::SecondaryGripType_Implementation()
 {
 	return VRGripInterfaceSettings.SecondaryGripType;
+}
+
+void UGrippableCapsuleComponent::SetDenyGripping(bool bDenyGripping)
+{
+	VRGripInterfaceSettings.bDenyGripping = bDenyGripping;
 }
 
 void UGrippableCapsuleComponent::SetHeld_Implementation(UGripMotionControllerComponent* HoldingController, uint8 GripID, bool bIsHeld)
@@ -232,7 +267,10 @@ void UGrippableCapsuleComponent::SetHeld_Implementation(UGripMotionControllerCom
 		if (VRGripInterfaceSettings.MovementReplicationType != EGripMovementReplicationSettings::ForceServerSideMovement)
 		{
 			if (!VRGripInterfaceSettings.bIsHeld)
+			{
 				bOriginalReplicatesMovement = bReplicateMovement;
+			}
+
 			bReplicateMovement = false;
 		}
 
@@ -256,12 +294,6 @@ bool UGrippableCapsuleComponent::SimulateOnDrop_Implementation()
 	return VRGripInterfaceSettings.bSimulateOnDrop;
 }
 
-/*FBPInteractionSettings UGrippableCapsuleComponent::GetInteractionSettings_Implementation()
-{
-	return VRGripInterfaceSettings.InteractionSettings;
-}*/
-
-
 EGripInterfaceTeleportBehavior UGrippableCapsuleComponent::TeleportBehavior_Implementation()
 {
 	return VRGripInterfaceSettings.OnTeleportBehavior;
@@ -269,36 +301,47 @@ EGripInterfaceTeleportBehavior UGrippableCapsuleComponent::TeleportBehavior_Impl
 
 // Event functions
 
-void UGrippableCapsuleComponent::OnChildGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) {}
+void UGrippableCapsuleComponent::OnChildGrip_Implementation       (UGripMotionControllerComponent* GrippingController , const FBPActorGripInformation& GripInformation                   ) {}
 void UGrippableCapsuleComponent::OnChildGripRelease_Implementation(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed) {}
 
-void UGrippableCapsuleComponent::OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) {}
+void UGrippableCapsuleComponent::OnGrip_Implementation       (UGripMotionControllerComponent* GrippingController , const FBPActorGripInformation& GripInformation                   ) {}
 void UGrippableCapsuleComponent::OnGripRelease_Implementation(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed) {}
 
-void UGrippableCapsuleComponent::OnSecondaryGrip_Implementation(USceneComponent* SecondaryGripComponent, const FBPActorGripInformation& GripInformation) {}
+void UGrippableCapsuleComponent::OnSecondaryGrip_Implementation       (USceneComponent* SecondaryGripComponent         , const FBPActorGripInformation& GripInformation) {}
 void UGrippableCapsuleComponent::OnSecondaryGripRelease_Implementation(USceneComponent* ReleasingSecondaryGripComponent, const FBPActorGripInformation& GripInformation) {}
 
-bool UGrippableCapsuleComponent::RequestsSocketing_Implementation(USceneComponent*& ParentToSocketTo, FName& OptionalSocketName, FTransform_NetQuantize& RelativeTransform) { return false; }
-void UGrippableCapsuleComponent::TickGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation, float DeltaTime) {}
+bool UGrippableCapsuleComponent::RequestsSocketing_Implementation(USceneComponent*&              ParentToSocketTo   ,       FName&                   OptionalSocketName, FTransform_NetQuantize& RelativeTransform) { return false; }
+void UGrippableCapsuleComponent::TickGrip_Implementation         (UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation   , float DeltaTime                          ) {}
 
 //  Interaction Functions
+
 void UGrippableCapsuleComponent::OnEndSecondaryUsed_Implementation() {}
-void UGrippableCapsuleComponent::OnEndUsed_Implementation() {}
+void UGrippableCapsuleComponent::OnEndUsed_Implementation         () {}
 
 void UGrippableCapsuleComponent::OnInput_Implementation(FKey Key, EInputEvent KeyEvent) {}
 
 void UGrippableCapsuleComponent::OnSecondaryUsed_Implementation() {}
-void UGrippableCapsuleComponent::OnUsed_Implementation() {}
+void UGrippableCapsuleComponent::OnUsed_Implementation         () {}
 
-void UGrippableCapsuleComponent::GetLifetimeReplicatedProps(TArray< class FLifetimeProperty > & OutLifetimeProps) const
+
+// Only in cpp (Ed).
+
+void UGrippableCapsuleComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME/*_CONDITION*/(UGrippableCapsuleComponent, GripLogicScripts);// , COND_Custom);
+	/*_CONDITION*/
+	DOREPLIFETIME(UGrippableCapsuleComponent, GripLogicScripts               );   // , COND_Custom);
 	DOREPLIFETIME(UGrippableCapsuleComponent, bRepGripSettingsAndGameplayTags);
-	DOREPLIFETIME(UGrippableCapsuleComponent, bReplicateMovement);
+	DOREPLIFETIME(UGrippableCapsuleComponent, bReplicateMovement             );
+	
 	DOREPLIFETIME_CONDITION(UGrippableCapsuleComponent, VRGripInterfaceSettings, COND_Custom);
-	DOREPLIFETIME_CONDITION(UGrippableCapsuleComponent, GameplayTags, COND_Custom);
+	DOREPLIFETIME_CONDITION(UGrippableCapsuleComponent, GameplayTags           , COND_Custom);
 }
 
 
+
+/*FBPInteractionSettings UGrippableCapsuleComponent::GetInteractionSettings_Implementation()
+{
+	return VRGripInterfaceSettings.InteractionSettings;
+}*/

@@ -7,16 +7,25 @@
 #include "TimerManager.h"
 #include "Net/UnrealNetwork.h"
 
+// VREP
+
+
+
+// UOptionalRepSkeletalMeshComponent
+
 // Public
 
 // Constructor & Destructor
 
 //=============================================================================
-UOptionalRepSkeletalMeshComponent::UOptionalRepSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
+UOptionalRepSkeletalMeshComponent::UOptionalRepSkeletalMeshComponent(const FObjectInitializer& ObjectInitializer) : 
+	Super             (ObjectInitializer),
+	bReplicateMovement(true             )
 {
-	bReplicateMovement = true;
+	//bReplicateMovement = true;
 }
+
+// Functions
 
 void UOptionalRepSkeletalMeshComponent::PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker)
 {
@@ -28,7 +37,9 @@ void UOptionalRepSkeletalMeshComponent::PreReplication(IRepChangedPropertyTracke
 	DOREPLIFETIME_ACTIVE_OVERRIDE(USceneComponent, RelativeScale3D, bReplicateMovement);
 }
 
-void UOptionalRepSkeletalMeshComponent::GetLifetimeReplicatedProps(TArray< class FLifetimeProperty > & OutLifetimeProps) const
+// CPP only:
+
+void UOptionalRepSkeletalMeshComponent::GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
@@ -36,25 +47,27 @@ void UOptionalRepSkeletalMeshComponent::GetLifetimeReplicatedProps(TArray< class
 }
 
 
+// AGrippableSkeletalMeshActor
+
 // Constructor & Destructor
 
 //=============================================================================
-AGrippableSkeletalMeshActor::AGrippableSkeletalMeshActor(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOptionalRepSkeletalMeshComponent>(TEXT("SkeletalMeshComponent0")))
+AGrippableSkeletalMeshActor::AGrippableSkeletalMeshActor(const FObjectInitializer& ObjectInitializer) : 
+	Super(ObjectInitializer.SetDefaultSubobjectClass<UOptionalRepSkeletalMeshComponent>(TEXT("SkeletalMeshComponent0")))
 {
-	VRGripInterfaceSettings.bDenyGripping = false;
-	VRGripInterfaceSettings.OnTeleportBehavior = EGripInterfaceTeleportBehavior::TeleportAllComponents;
-	VRGripInterfaceSettings.bSimulateOnDrop = true;
-	VRGripInterfaceSettings.SlotDefaultGripType = EGripCollisionType::InteractiveCollisionWithPhysics;
-	VRGripInterfaceSettings.FreeDefaultGripType = EGripCollisionType::InteractiveCollisionWithPhysics;
-	VRGripInterfaceSettings.SecondaryGripType = ESecondaryGripType::SG_None;
+	VRGripInterfaceSettings.bDenyGripping           = false                                                    ;
+	VRGripInterfaceSettings.OnTeleportBehavior      = EGripInterfaceTeleportBehavior::TeleportAllComponents    ;
+	VRGripInterfaceSettings.bSimulateOnDrop         = true                                                     ;
+	VRGripInterfaceSettings.SlotDefaultGripType     = EGripCollisionType::InteractiveCollisionWithPhysics      ;
+	VRGripInterfaceSettings.FreeDefaultGripType     = EGripCollisionType::InteractiveCollisionWithPhysics      ;
+	VRGripInterfaceSettings.SecondaryGripType       = ESecondaryGripType::SG_None                              ;
 	VRGripInterfaceSettings.MovementReplicationType = EGripMovementReplicationSettings::ForceClientSideMovement;
-	VRGripInterfaceSettings.LateUpdateSetting = EGripLateUpdateSettings::NotWhenCollidingOrDoubleGripping;
-	VRGripInterfaceSettings.ConstraintStiffness = 1500.0f;
-	VRGripInterfaceSettings.ConstraintDamping = 200.0f;
-	VRGripInterfaceSettings.ConstraintBreakDistance = 100.0f;
-	VRGripInterfaceSettings.SecondarySlotRange = 20.0f;
-	VRGripInterfaceSettings.PrimarySlotRange = 20.0f;
+	VRGripInterfaceSettings.LateUpdateSetting       = EGripLateUpdateSettings::NotWhenCollidingOrDoubleGripping;
+	VRGripInterfaceSettings.ConstraintStiffness     = 1500.0f                                                  ;
+	VRGripInterfaceSettings.ConstraintDamping       = 200.0f                                                   ;
+	VRGripInterfaceSettings.ConstraintBreakDistance = 100.0f                                                   ;
+	VRGripInterfaceSettings.SecondarySlotRange      = 20.0f                                                    ;
+	VRGripInterfaceSettings.PrimarySlotRange        = 20.0f                                                    ;
 
 	VRGripInterfaceSettings.bIsHeld = false;
 
@@ -73,6 +86,7 @@ AGrippableSkeletalMeshActor::AGrippableSkeletalMeshActor(const FObjectInitialize
 
 AGrippableSkeletalMeshActor::~AGrippableSkeletalMeshActor()
 {}
+
 
 // Functions
 
@@ -123,12 +137,15 @@ bool AGrippableSkeletalMeshActor::PollReplicationEvent()
 			if (PrimComp->IsSimulatingPhysics() && ShouldWeSkipAttachmentReplication())
 			{
 				FRepMovementVR ClientAuthMovementRep;
+
 				if (ClientAuthMovementRep.GatherActorsMovement(this))
 				{
 					Server_GetClientAuthReplication(ClientAuthMovementRep);
 
 					if (PrimComp->RigidBodyIsAwake())
+					{
 						return true;
+					}
 				}
 			}
 		}
@@ -139,7 +156,7 @@ bool AGrippableSkeletalMeshActor::PollReplicationEvent()
 	}
 	else
 	{
-		// Difference is too small, lets end sending location
+		// Difference is too small, lets end sending location.
 		ClientAuthReplicationData.LastActorTransform = FTransform::Identity;
 	}
 
@@ -525,3 +542,7 @@ void AGrippableSkeletalMeshActor::GetLifetimeReplicatedProps(TArray< class FLife
 	DOREPLIFETIME_CONDITION(AGrippableSkeletalMeshActor, VRGripInterfaceSettings, COND_Custom);
 	DOREPLIFETIME_CONDITION(AGrippableSkeletalMeshActor, GameplayTags, COND_Custom);
 }
+
+
+
+

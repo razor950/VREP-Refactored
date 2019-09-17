@@ -2,6 +2,8 @@
 
 #pragma once
 
+// Includes
+
 // Unreal
 #include "CoreMinimal.h"
 #include "Components/BoxComponent.h"
@@ -24,7 +26,12 @@
 *
 */
 UCLASS(Blueprintable, meta = (BlueprintSpawnableComponent), ClassGroup = (VRExpansionPlugin))
-class VREXPANSIONPLUGIN_API UGrippableBoxComponent : public UBoxComponent, public IVRGripInterface, public IGameplayTagAssetInterface
+class VREXPANSIONPLUGIN_API UGrippableBoxComponent : 
+	// Parent
+	public UBoxComponent,
+	
+	// Interfaces
+	public IGameplayTagAssetInterface, public IVRGripInterface
 {
 	GENERATED_BODY()
 
@@ -57,6 +64,18 @@ public:
 
 	bool ReplicateSubobjects(UActorChannel* Channel, class FOutBunch* Bunch, FReplicationFlags* RepFlags) override;
 
+	// ------------------------------------------------
+	// Gameplay tag interface
+	// ------------------------------------------------
+
+	/** Overridden to return requirements tags. */
+	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override
+	{
+		TagContainer = GameplayTags;
+	}
+
+	// End Gameplay Tag Interface
+
 	// IVRGripInterface Implementation
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") FBPAdvGripSettings AdvancedGripSettings();   // Get the advanced physics settings for this grip.
@@ -66,12 +85,12 @@ public:
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
 		void ClosestGripSlotInRange
 		(
-			FVector                         WorldLocation              , 
-			bool                            bSecondarySlot             , 
-			bool&                           bHadSlotInRange            , 
-			FTransform &                    SlotWorldTransform         , 
-			UGripMotionControllerComponent* CallingController = nullptr, 
-			FName                           OverridePrefix = NAME_None
+			FVector                         WorldLocation                , 
+			bool                            bSecondarySlot               , 
+			bool&                           bHadSlotInRange              , 
+			FTransform&                     SlotWorldTransform           , 
+			UGripMotionControllerComponent* CallingController = nullptr  , 
+			FName                           OverridePrefix    = NAME_None
 		);
 
 	// Set up as deny instead of allow so that default allows for gripping.
@@ -96,7 +115,7 @@ public:
 
 	// Returns if the object is held and if so, which controllers are holding it.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
-		void IsHeld(TArray<FBPGripPair> & HoldingControllers, bool & bIsHeld);
+		void IsHeld(TArray<FBPGripPair>& HoldingControllers, bool& bIsHeld);
 
 	// Returns if the object wants to be socketed.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface")
@@ -110,7 +129,7 @@ public:
 
 	// Sets is held, used by the plugin.
 	UFUNCTION(BlueprintNativeEvent, /*BlueprintCallable,*/ Category = "VRGripInterface")
-		void SetHeld(UGripMotionControllerComponent * HoldingController, uint8 GripID, bool bIsHeld);
+		void SetHeld(UGripMotionControllerComponent* HoldingController, uint8 GripID, bool bIsHeld);
 
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") bool                           SimulateOnDrop  ();   // Should this object simulate on drop.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") EGripInterfaceTeleportBehavior TeleportBehavior();   // How an interfaced object behaves when teleporting.
@@ -119,7 +138,7 @@ public:
 
 	// Event triggered on the interfaced object when child component is gripped.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
-		void OnChildGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation);
+		void OnChildGrip(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation& GripInformation);
 
 	// Event triggered on the interfaced object when child component is released.
 	UFUNCTION(BlueprintNativeEvent, Category = "VRGripInterface")
@@ -147,23 +166,11 @@ public:
 
 	// Interaction Functions
 
-	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnEndUsed                                       ();   // Call to stop using an object.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnEndSecondaryUsed                              ();   // Call to stop using an object.
+	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnEndUsed                                       ();   // Call to stop using an object.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnInput           (FKey Key, EInputEvent KeyEvent);   // Call to send an action event to the object.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnSecondaryUsed                                 ();   // Call to use an object.
 	UFUNCTION(BlueprintNativeEvent, BlueprintCallable, Category = "VRGripInterface") void OnUsed                                          ();   // Call to use an object.
-
-	// ------------------------------------------------
-	// Gameplay tag interface
-	// ------------------------------------------------
-
-	/** Overridden to return requirements tags. */
-	virtual void GetOwnedGameplayTags(FGameplayTagContainer& TagContainer) const override
-	{
-		TagContainer = GameplayTags;
-	}
-	
-	// End Gameplay Tag Interface
 
 
 	// Declares
