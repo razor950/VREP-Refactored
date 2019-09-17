@@ -1,6 +1,6 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-// VREP
+// Parent Header
 #include "Grippables/GrippablePhysicsReplication.h"
 
 // Unreal
