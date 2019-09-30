@@ -1,14 +1,26 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+// Parent Header
 #include "GripScripts/GS_GunTools.h"
+
+// Unreal
+#include "DrawDebugHelpers.h"
+#include "IXRTrackingSystem.h"
+
+// VREP
 #include "VRGripInterface.h"
 #include "GripMotionControllerComponent.h"
 #include "VRExpansionFunctionLibrary.h"
-#include "IXRTrackingSystem.h"
 #include "VRGlobalSettings.h"
 #include "VRBaseCharacter.h"
-#include "DrawDebugHelpers.h"
 
+// UGS_GunTools
+
+// Public
+
+// Constructor & Destructor
+
+//=============================================================================
 UGS_GunTools::UGS_GunTools(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
@@ -46,6 +58,8 @@ UGS_GunTools::UGS_GunTools(const FObjectInitializer& ObjectInitializer) :
 	bUseHighQualityRemoteSimulation = false;
 }
 
+// Functions
+
 //=============================================================================
 /*void UGS_GunTools::GetLifetimeReplicatedProps(TArray< class FLifetimeProperty > & OutLifetimeProps) const
 {
@@ -75,14 +89,74 @@ UGS_GunTools::UGS_GunTools(const FObjectInitializer& ObjectInitializer) :
 	DOREPLIFETIME_CONDITION(UGS_GunTools, LerpRate, COND_Custom);
 }*/
 
+void UGS_GunTools::AddRecoilInstance(const FTransform& RecoilAddition)
+{
+	if (!bHasRecoil)
+		return;
+
+	BackEndRecoilTarget += RecoilAddition;
+
+	FVector CurVec = BackEndRecoilTarget.GetTranslation();
+
+	// Identity on min value is technically wrong, what if they want to recoil in the opposing direction?
+	CurVec.X = FMath::Clamp(CurVec.X, FMath::Min(0.f, MaxRecoilTranslation.X), FMath::Max(MaxRecoilTranslation.X, 0.f));
+	CurVec.Y = FMath::Clamp(CurVec.Y, FMath::Min(0.f, MaxRecoilTranslation.Y), FMath::Max(MaxRecoilTranslation.Y, 0.f));
+	CurVec.Z = FMath::Clamp(CurVec.Z, FMath::Min(0.f, MaxRecoilTranslation.Z), FMath::Max(MaxRecoilTranslation.Z, 0.f));
+	BackEndRecoilTarget.SetTranslation(CurVec);
+
+	FVector CurScale = BackEndRecoilTarget.GetScale3D();
+
+	// Identity on min value is technically wrong, what if they want to recoil in the opposing direction?
+	CurScale.X = FMath::Clamp(CurScale.X, FMath::Min(0.f, MaxRecoilScale.X), FMath::Max(MaxRecoilScale.X, 0.f));
+	CurScale.Y = FMath::Clamp(CurScale.Y, FMath::Min(0.f, MaxRecoilScale.Y), FMath::Max(MaxRecoilScale.Y, 0.f));
+	CurScale.Z = FMath::Clamp(CurScale.Z, FMath::Min(0.f, MaxRecoilScale.Z), FMath::Max(MaxRecoilScale.Z, 0.f));
+	BackEndRecoilTarget.SetScale3D(CurScale);
+
+	FRotator curRot = BackEndRecoilTarget.Rotator();
+	curRot.Pitch = FMath::Clamp(curRot.Pitch, FMath::Min(0.f, MaxRecoilRotation.Y), FMath::Max(MaxRecoilRotation.Y, 0.f));
+	curRot.Yaw = FMath::Clamp(curRot.Yaw, FMath::Min(0.f, MaxRecoilRotation.Z), FMath::Max(MaxRecoilRotation.Z, 0.f));
+	curRot.Roll = FMath::Clamp(curRot.Roll, FMath::Min(0.f, MaxRecoilRotation.X), FMath::Max(MaxRecoilRotation.X, 0.f));
+
+	BackEndRecoilTarget.SetRotation(curRot.Quaternion());
+
+	bHasActiveRecoil = !BackEndRecoilTarget.Equals(FTransform::Identity);
+}
+
+void UGS_GunTools::GetVirtualStockTarget(UGripMotionControllerComponent* GrippingController)
+{
+	if (GrippingController && (GrippingController->bHasAuthority || bUseHighQualityRemoteSimulation))
+	{
+		if (AVRBaseCharacter* vrOwner = Cast<AVRBaseCharacter>(GrippingController->GetOwner()))
+		{
+			CameraComponent = vrOwner->VRReplicatedCamera;
+			return;
+		}
+		else
+		{
+			TArray<USceneComponent*> children = GrippingController->GetOwner()->GetRootComponent()->GetAttachChildren();
+
+			for (int i = 0; i < children.Num(); i++)
+			{
+				if (children[i]->IsA(UCameraComponent::StaticClass()))
+				{
+					CameraComponent = children[i];
+					return;
+				}
+			}
+		}
+
+		CameraComponent = nullptr;
+	}
+}
+
 bool UGS_GunTools::GetWorldTransform_Implementation
 (
 	UGripMotionControllerComponent* GrippingController, 
-	float DeltaTime, FTransform & WorldTransform, 
-	const FTransform &ParentTransform, 
-	FBPActorGripInformation &Grip, 
-	AActor * actor, 
-	UPrimitiveComponent * root, 
+	float DeltaTime, FTransform& WorldTransform, 
+	const FTransform& ParentTransform, 
+	FBPActorGripInformation& Grip, 
+	AActor* actor, 
+	UPrimitiveComponent* root, 
 	bool bRootHasInterface, 
 	bool bActorHasInterface, 
 	bool bIsForTeleport
@@ -391,7 +465,7 @@ bool UGS_GunTools::GetWorldTransform_Implementation
 	return true;
 }
 
-void UGS_GunTools::OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation)
+void UGS_GunTools::OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation)
 {
 
 	if (bUseGlobalVirtualStockSettings)
@@ -428,34 +502,7 @@ void UGS_GunTools::OnGrip_Implementation(UGripMotionControllerComponent * Grippi
 	GetVirtualStockTarget(GrippingController);
 }
 
-void UGS_GunTools::GetVirtualStockTarget(UGripMotionControllerComponent * GrippingController)
-{
-	if (GrippingController && (GrippingController->bHasAuthority || bUseHighQualityRemoteSimulation))
-	{
-		if (AVRBaseCharacter * vrOwner = Cast<AVRBaseCharacter>(GrippingController->GetOwner()))
-		{
-			CameraComponent = vrOwner->VRReplicatedCamera;
-			return;
-		}
-		else
-		{
-			TArray<USceneComponent*> children = GrippingController->GetOwner()->GetRootComponent()->GetAttachChildren();
-
-			for (int i = 0; i < children.Num(); i++)
-			{
-				if (children[i]->IsA(UCameraComponent::StaticClass()))
-				{
-					CameraComponent = children[i];
-					return;
-				}
-			}
-		}
-
-		CameraComponent = nullptr;
-	}
-}
-
-void UGS_GunTools::OnSecondaryGrip_Implementation(UGripMotionControllerComponent * Controller, USceneComponent * SecondaryGripComponent, const FBPActorGripInformation & GripInformation)
+void UGS_GunTools::OnSecondaryGrip_Implementation(UGripMotionControllerComponent* Controller, USceneComponent* SecondaryGripComponent, const FBPActorGripInformation& GripInformation)
 {
 	// Super doesn't do anything on Secondary grip
 
@@ -483,35 +530,3 @@ void UGS_GunTools::ResetRecoil()
 	BackEndRecoilTarget = FTransform::Identity;
 }
 
-void UGS_GunTools::AddRecoilInstance(const FTransform & RecoilAddition)
-{
-	if (!bHasRecoil)
-		return;
-
-	BackEndRecoilTarget += RecoilAddition;
-
-	FVector CurVec = BackEndRecoilTarget.GetTranslation();
-
-	// Identity on min value is technically wrong, what if they want to recoil in the opposing direction?
-	CurVec.X = FMath::Clamp(CurVec.X, FMath::Min(0.f, MaxRecoilTranslation.X), FMath::Max(MaxRecoilTranslation.X, 0.f));
-	CurVec.Y = FMath::Clamp(CurVec.Y, FMath::Min(0.f, MaxRecoilTranslation.Y), FMath::Max(MaxRecoilTranslation.Y, 0.f));
-	CurVec.Z = FMath::Clamp(CurVec.Z, FMath::Min(0.f, MaxRecoilTranslation.Z), FMath::Max(MaxRecoilTranslation.Z, 0.f));
-	BackEndRecoilTarget.SetTranslation(CurVec);
-
-	FVector CurScale = BackEndRecoilTarget.GetScale3D();
-
-	// Identity on min value is technically wrong, what if they want to recoil in the opposing direction?
-	CurScale.X = FMath::Clamp(CurScale.X, FMath::Min(0.f, MaxRecoilScale.X), FMath::Max(MaxRecoilScale.X, 0.f));
-	CurScale.Y = FMath::Clamp(CurScale.Y, FMath::Min(0.f, MaxRecoilScale.Y), FMath::Max(MaxRecoilScale.Y, 0.f));
-	CurScale.Z = FMath::Clamp(CurScale.Z, FMath::Min(0.f, MaxRecoilScale.Z), FMath::Max(MaxRecoilScale.Z, 0.f));
-	BackEndRecoilTarget.SetScale3D(CurScale);
-
-	FRotator curRot = BackEndRecoilTarget.Rotator();
-	curRot.Pitch = FMath::Clamp(curRot.Pitch, FMath::Min(0.f, MaxRecoilRotation.Y), FMath::Max(MaxRecoilRotation.Y, 0.f));
-	curRot.Yaw = FMath::Clamp(curRot.Yaw, FMath::Min(0.f, MaxRecoilRotation.Z), FMath::Max(MaxRecoilRotation.Z, 0.f));
-	curRot.Roll = FMath::Clamp(curRot.Roll, FMath::Min(0.f, MaxRecoilRotation.X), FMath::Max(MaxRecoilRotation.X, 0.f));
-
-	BackEndRecoilTarget.SetRotation(curRot.Quaternion());
-
-	bHasActiveRecoil = !BackEndRecoilTarget.Equals(FTransform::Identity);
-}

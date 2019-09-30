@@ -1,24 +1,39 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
+// Parent Header
 #include "GripScripts/GS_Default.h"
+
+// Unreal
+
+// VREP
 #include "VRGripInterface.h"
 #include "GripMotionControllerComponent.h"
 
+
+// UGS_Default
+
+// Public
+
+// Constructor & Destructor
+
+//=============================================================================
 UGS_Default::UGS_Default(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
-	bIsActive = true;
+	bIsActive                  = true;
 	WorldTransformOverrideType = EGSTransformOverrideType::OverridesWorldTransform;
 }
+
+// Functions
 
 bool UGS_Default::GetWorldTransform_Implementation
 (
 	UGripMotionControllerComponent* GrippingController, 
-	float DeltaTime, FTransform & WorldTransform, 
-	const FTransform &ParentTransform, 
-	FBPActorGripInformation &Grip, 
-	AActor * actor, 
-	UPrimitiveComponent * root, 
+	float DeltaTime, FTransform& WorldTransform, 
+	const FTransform& ParentTransform, 
+	FBPActorGripInformation& Grip, 
+	AActor* actor, 
+	UPrimitiveComponent* root, 
 	bool bRootHasInterface, 
 	bool bActorHasInterface, 
 	bool bIsForTeleport

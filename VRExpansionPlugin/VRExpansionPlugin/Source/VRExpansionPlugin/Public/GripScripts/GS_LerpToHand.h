@@ -2,10 +2,17 @@
 
 #pragma once
 
+// Unreal
 #include "CoreMinimal.h"
-#include "VRGripScriptBase.h"
 #include "Curves/CurveFloat.h"
+
+// VREP
+#include "VRGripScriptBase.h"
+
+// UHeader Tool
 #include "GS_LerpToHand.generated.h"
+
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FVRLerpToHandFinishedSignature);
 
@@ -32,8 +39,17 @@ class VREXPANSIONPLUGIN_API UGS_LerpToHand : public UVRGripScriptBase
 	GENERATED_BODY()
 public:
 
+	// Constructor & Destructor
 	UGS_LerpToHand(const FObjectInitializer& ObjectInitializer);
 
+	// Functions
+
+	//virtual void BeginPlay_Implementation() override;
+	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent * OwningController, float DeltaTime, FTransform & WorldTransform, const FTransform &ParentTransform, FBPActorGripInformation &Grip, AActor * actor, UPrimitiveComponent * root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
+	virtual void OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) override;
+	virtual void OnGripRelease_Implementation(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed) override;
+
+	// Declares
 	float CurrentLerpTime;
 
 	// If the initial grip distance is closer than this value then the lerping will not be performed.
@@ -42,11 +58,11 @@ public:
 
 	// Progress from 0.0 to 1.0 that it should take per second to finish lerping.
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "LerpSettings")
-	float InterpSpeed;
+		float InterpSpeed;
 
 	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "LerpSettings")
-	EVRLerpInterpolationMode LerpInterpolationMode;
-	
+		EVRLerpInterpolationMode LerpInterpolationMode;
+
 	UPROPERTY(BlueprintAssignable, Category = "LerpEvents")
 		FVRLerpToHandFinishedSignature OnLerpToHandFinished;
 
@@ -57,8 +73,4 @@ public:
 
 	FTransform OnGripTransform;
 
-	//virtual void BeginPlay_Implementation() override;
-	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent * OwningController, float DeltaTime, FTransform & WorldTransform, const FTransform &ParentTransform, FBPActorGripInformation &Grip, AActor * actor, UPrimitiveComponent * root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
-	virtual void OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) override;
-	virtual void OnGripRelease_Implementation(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed) override;
 };

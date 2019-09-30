@@ -2,9 +2,14 @@
 
 #pragma once
 
+// Unreal
 #include "CoreMinimal.h"
+
+// VREP
 #include "VRGripScriptBase.h"
 #include "GripScripts/GS_Default.h"
+
+// UHeader Tool
 #include "GS_GunTools.generated.h"
 
 class UGripMotionControllerComponent;
@@ -153,24 +158,17 @@ class VREXPANSIONPLUGIN_API UGS_GunTools : public UGS_Default
 	GENERATED_BODY()
 public:
 
+	// Constructor & Destructor
+
 	UGS_GunTools(const FObjectInitializer& ObjectInitializer);
 
-	virtual void OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) override;
-	virtual void OnSecondaryGrip_Implementation(UGripMotionControllerComponent * Controller, USceneComponent * SecondaryGripComponent, const FBPActorGripInformation & GripInformation) override;
+	// Functions
 
-	// (default false) If true will run through the entire simulation that the owning client uses for the gun. If false, does a lighter and more performant approximation.
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GunSettings")
-		bool bUseHighQualityRemoteSimulation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings")
-	FGunTools_AdvSecondarySettings AdvSecondarySettings;
-
-	// Offset to apply to the pivot (good for centering pivot into the palm ect).
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pivot")
-		FVector_NetQuantize100 PivotOffset;
+	virtual void OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) override;
+	virtual void OnSecondaryGrip_Implementation(UGripMotionControllerComponent* Controller, USceneComponent* SecondaryGripComponent, const FBPActorGripInformation& GripInformation) override;
 
 	UFUNCTION(BlueprintCallable, Category = "VirtualStock")
-		void SetVirtualStockComponent(USceneComponent * NewStockComponent)
+		void SetVirtualStockComponent(USceneComponent* NewStockComponent)
 	{
 		VirtualStockComponent = NewStockComponent;
 	}
@@ -189,7 +187,49 @@ public:
 		VirtualStockSettings.StockHandSmoothing.ResetSmoothingFilter();
 	}
 
-	void GetVirtualStockTarget(UGripMotionControllerComponent * GrippingController);
+	void GetVirtualStockTarget(UGripMotionControllerComponent* GrippingController);
+
+	UFUNCTION(BlueprintCallable, Category = "Recoil")
+		void AddRecoilInstance(const FTransform& RecoilAddition);
+
+	UFUNCTION(BlueprintCallable, Category = "Recoil")
+		void ResetRecoil();
+
+	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent* GrippingController, float DeltaTime, FTransform& WorldTransform, const FTransform& ParentTransform, FBPActorGripInformation& Grip, AActor* actor, UPrimitiveComponent* root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
+	
+	inline void GunTools_ApplySmoothingAndLerp(FBPActorGripInformation& Grip, FVector& frontLoc, FVector& frontLocOrig, float DeltaTime, bool bSkipHighQualitySimulations)
+	{
+		if (Grip.SecondaryGripInfo.GripLerpState == EGripLerpState::StartLerp) // Lerp into the new grip to smooth the transition
+		{
+			if (!bSkipHighQualitySimulations && AdvSecondarySettings.SecondaryGripScaler < 1.0f)
+			{
+				FVector SmoothedValue = AdvSecondarySettings.SecondarySmoothing.RunFilterSmoothing(frontLoc, DeltaTime);
+
+				frontLoc = FMath::Lerp(frontLoc, SmoothedValue, AdvSecondarySettings.SecondaryGripScaler);
+			}
+
+			Default_ApplySmoothingAndLerp(Grip, frontLoc, frontLocOrig, DeltaTime);
+		}
+		else if (!bSkipHighQualitySimulations && AdvSecondarySettings.bUseAdvancedSecondarySettings && AdvSecondarySettings.bUseConstantGripScaler) // If there is a frame by frame lerp
+		{
+			FVector SmoothedValue = AdvSecondarySettings.SecondarySmoothing.RunFilterSmoothing(frontLoc, DeltaTime);
+
+			frontLoc = FMath::Lerp(frontLoc, SmoothedValue, AdvSecondarySettings.SecondaryGripScaler);
+		}
+	}
+
+	// Declares
+
+	// (default false) If true will run through the entire simulation that the owning client uses for the gun. If false, does a lighter and more performant approximation.
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "GunSettings")
+		bool bUseHighQualityRemoteSimulation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings")
+		FGunTools_AdvSecondarySettings AdvSecondarySettings;
+
+	// Offset to apply to the pivot (good for centering pivot into the palm ect).
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Pivot")
+		FVector_NetQuantize100 PivotOffset;
 
 	// Call to use an object
 	UPROPERTY(BlueprintAssignable, Category = "VirtualStock")
@@ -218,37 +258,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "VirtualStock", meta = (editcondition = "!bUseGlobalVirtualStockSettings"))
 		FBPVirtualStockSettings VirtualStockSettings;
-
-/*
-	// Should we auto snap to the virtual stock by a set distance
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
-		bool bUseDistanceBasedStockSnapping;
-
-	// The distance before snapping to the stock / unsnapping
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
-	 float StockSnapDistance;
-
-	// An offset to apply to the HMD location to be considered the neck / mount pivot 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
-		FVector_NetQuantize100 StockSnapOffset;
-
-	// Attaches the grip location to the virtual stock location (locationally).
-	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
-	//	bool bAttachGripToStockLocation;
-
-	// Overrides the pivot location to be at this component instead
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing")
-		bool bSmoothStockHand;
-
-	// How much influence the virtual stock smoothing should have, 0.0f is zero smoothing, 1.0f is full smoothing, you should test with full smoothing to get the amount you
-	// want and then set the smoothing value up until it feels right between the fully smoothed and unsmoothed values.
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing", meta = (editcondition = "bSmoothStockHand", ClampMin = "0.00", UIMin = "0.00", ClampMax = "1.00", UIMax = "1.00"))
-		float SmoothingValueForStock;
-	
-	// Used to smooth filter the virtual stocks primary hand location
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing")
-	FBPEuroLowPassFilter StockHandSmoothing;
-	*/
 
 	// If this gun has recoil
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Recoil")
@@ -279,34 +288,37 @@ public:
 	FTransform BackEndRecoilTarget;
 
 	bool bHasActiveRecoil;
-	
-	UFUNCTION(BlueprintCallable, Category = "Recoil")
-		void AddRecoilInstance(const FTransform & RecoilAddition);
 
-	UFUNCTION(BlueprintCallable, Category = "Recoil")
-		void ResetRecoil();
+	/*
+	// Should we auto snap to the virtual stock by a set distance
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
+		bool bUseDistanceBasedStockSnapping;
 
-	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent * GrippingController, float DeltaTime, FTransform & WorldTransform, const FTransform &ParentTransform, FBPActorGripInformation &Grip, AActor * actor, UPrimitiveComponent * root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
-	
-	inline void GunTools_ApplySmoothingAndLerp(FBPActorGripInformation & Grip, FVector &frontLoc, FVector & frontLocOrig, float DeltaTime, bool bSkipHighQualitySimulations)
-	{
-		if (Grip.SecondaryGripInfo.GripLerpState == EGripLerpState::StartLerp) // Lerp into the new grip to smooth the transition
-		{
-			if (!bSkipHighQualitySimulations && AdvSecondarySettings.SecondaryGripScaler < 1.0f)
-			{
-				FVector SmoothedValue = AdvSecondarySettings.SecondarySmoothing.RunFilterSmoothing(frontLoc, DeltaTime);
+	// The distance before snapping to the stock / unsnapping
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
+	 float StockSnapDistance;
 
-				frontLoc = FMath::Lerp(frontLoc, SmoothedValue, AdvSecondarySettings.SecondaryGripScaler);
-			}
+	// An offset to apply to the HMD location to be considered the neck / mount pivot
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
+		FVector_NetQuantize100 StockSnapOffset;
 
-			Default_ApplySmoothingAndLerp(Grip, frontLoc, frontLocOrig, DeltaTime);
-		}
-		else if (!bSkipHighQualitySimulations && AdvSecondarySettings.bUseAdvancedSecondarySettings && AdvSecondarySettings.bUseConstantGripScaler) // If there is a frame by frame lerp
-		{
-			FVector SmoothedValue = AdvSecondarySettings.SecondarySmoothing.RunFilterSmoothing(frontLoc, DeltaTime);
+	// Attaches the grip location to the virtual stock location (locationally).
+	//UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock")
+	//	bool bAttachGripToStockLocation;
 
-			frontLoc = FMath::Lerp(frontLoc, SmoothedValue, AdvSecondarySettings.SecondaryGripScaler);
-		}
-	}
+	// Overrides the pivot location to be at this component instead
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing")
+		bool bSmoothStockHand;
+
+	// How much influence the virtual stock smoothing should have, 0.0f is zero smoothing, 1.0f is full smoothing, you should test with full smoothing to get the amount you
+	// want and then set the smoothing value up until it feels right between the fully smoothed and unsmoothed values.
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing", meta = (editcondition = "bSmoothStockHand", ClampMin = "0.00", UIMin = "0.00", ClampMax = "1.00", UIMax = "1.00"))
+		float SmoothingValueForStock;
+
+	// Used to smooth filter the virtual stocks primary hand location
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "GunSettings|VirtualStock|Smoothing")
+	FBPEuroLowPassFilter StockHandSmoothing;
+	*/
+
 };
 

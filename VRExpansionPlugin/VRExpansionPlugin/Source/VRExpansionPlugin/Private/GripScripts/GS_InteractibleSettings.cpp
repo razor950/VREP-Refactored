@@ -1,8 +1,20 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+// Parent Header
 #include "GripScripts/GS_InteractibleSettings.h"
 
+// Unreal
+
+// VREP
+
+
+// UGS_InteractibleSettings
+
+// Public
+
+// Constructor & Destructor
+
+//=============================================================================
 UGS_InteractibleSettings::UGS_InteractibleSettings(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
@@ -10,43 +22,20 @@ UGS_InteractibleSettings::UGS_InteractibleSettings(const FObjectInitializer& Obj
 	WorldTransformOverrideType = EGSTransformOverrideType::OverridesWorldTransform;
 }
 
-void UGS_InteractibleSettings::OnBeginPlay_Implementation(UObject * CallingOwner)
-{
-	if (InteractionSettings.bGetInitialPositionsOnBeginPlay)
-	{
-		FTransform parentTrans = GetParentTransform(!InteractionSettings.bLimitsInLocalSpace);
-
-		InteractionSettings.InitialAngularTranslation = parentTrans.Rotator();
-		InteractionSettings.InitialLinearTranslation = parentTrans.GetTranslation();
-	}
-}
-void UGS_InteractibleSettings::OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) 
-{
-	if (InteractionSettings.bIgnoreHandRotation && !InteractionSettings.bHasValidBaseTransform)
-	{
-		RemoveRelativeRotation(GrippingController, GripInformation);
-	}
-
-}
-
-void UGS_InteractibleSettings::OnGripRelease_Implementation(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed) 
-{
-	InteractionSettings.bHasValidBaseTransform = false;
-}
-
+// Functions
 
 bool UGS_InteractibleSettings::GetWorldTransform_Implementation
 (
-	UGripMotionControllerComponent* GrippingController, 
-	float DeltaTime, FTransform & WorldTransform, 
-	const FTransform &ParentTransform, 
-	FBPActorGripInformation &Grip, 
-	AActor * actor, 
-	UPrimitiveComponent * root, 
-	bool bRootHasInterface, 
-	bool bActorHasInterface, 
+	UGripMotionControllerComponent* GrippingController,
+	float DeltaTime, FTransform& WorldTransform,
+	const FTransform& ParentTransform,
+	FBPActorGripInformation& Grip,
+	AActor* actor,
+	UPrimitiveComponent* root,
+	bool bRootHasInterface,
+	bool bActorHasInterface,
 	bool bIsForTeleport
-) 
+)
 {
 	if (!root)
 		return false;
@@ -114,4 +103,29 @@ bool UGS_InteractibleSettings::GetWorldTransform_Implementation
 	}
 
 	return true;
+}
+
+void UGS_InteractibleSettings::OnBeginPlay_Implementation(UObject* CallingOwner)
+{
+	if (InteractionSettings.bGetInitialPositionsOnBeginPlay)
+	{
+		FTransform parentTrans = GetParentTransform(!InteractionSettings.bLimitsInLocalSpace);
+
+		InteractionSettings.InitialAngularTranslation = parentTrans.Rotator();
+		InteractionSettings.InitialLinearTranslation = parentTrans.GetTranslation();
+	}
+}
+
+void UGS_InteractibleSettings::OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) 
+{
+	if (InteractionSettings.bIgnoreHandRotation && !InteractionSettings.bHasValidBaseTransform)
+	{
+		RemoveRelativeRotation(GrippingController, GripInformation);
+	}
+
+}
+
+void UGS_InteractibleSettings::OnGripRelease_Implementation(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed) 
+{
+	InteractionSettings.bHasValidBaseTransform = false;
 }

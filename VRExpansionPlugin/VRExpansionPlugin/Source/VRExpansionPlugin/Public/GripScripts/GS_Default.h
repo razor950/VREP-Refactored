@@ -1,8 +1,15 @@
 #pragma once
 
+// Includes
+
+// Unreal
 #include "CoreMinimal.h"
-#include "VRGripScriptBase.h"
 #include "GameFramework/WorldSettings.h"
+
+// VREP
+#include "VRGripScriptBase.h"
+
+// UHeader Tool
 #include "GS_Default.generated.h"
 
 
@@ -15,7 +22,10 @@ class VREXPANSIONPLUGIN_API UGS_Default : public UVRGripScriptBase
 	GENERATED_BODY()
 public:
 
+	// Constructor & Destructor
 	UGS_Default(const FObjectInitializer& ObjectInitializer);
+
+	// Functions
 
 	//virtual void BeginPlay_Implementation() override;
 	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent * GrippingController, float DeltaTime, FTransform & WorldTransform, const FTransform &ParentTransform, FBPActorGripInformation &Grip, AActor * actor, UPrimitiveComponent * root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;

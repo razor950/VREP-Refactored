@@ -1,10 +1,21 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
+// Parent Header
 #include "GripScripts/GS_LerpToHand.h"
-#include "GripMotionControllerComponent.h"
+
+// Unreal
 #include "Math/DualQuat.h"
 
+// VREP
+#include "GripMotionControllerComponent.h"
+
+// UGS_LerpToHand
+
+// Public
+
+// Constructor & Destructor
+
+//=============================================================================
 UGS_LerpToHand::UGS_LerpToHand(const FObjectInitializer& ObjectInitializer) :
 	Super(ObjectInitializer)
 {
@@ -20,8 +31,11 @@ UGS_LerpToHand::UGS_LerpToHand(const FObjectInitializer& ObjectInitializer) :
 	MinDistanceForLerp = 0.0f;
 }
 
+
+// Functions
+
 //void UGS_InteractibleSettings::BeginPlay_Implementation() {}
-void UGS_LerpToHand::OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) 
+void UGS_LerpToHand::OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) 
 {
 	OnGripTransform = GetParentTransform();
 
@@ -39,7 +53,7 @@ void UGS_LerpToHand::OnGrip_Implementation(UGripMotionControllerComponent * Grip
 	CurrentLerpTime = 0.0f;
 }
 
-void UGS_LerpToHand::OnGripRelease_Implementation(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed) 
+void UGS_LerpToHand::OnGripRelease_Implementation(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed) 
 {
 	bIsActive = false;
 }
@@ -47,11 +61,11 @@ void UGS_LerpToHand::OnGripRelease_Implementation(UGripMotionControllerComponent
 bool UGS_LerpToHand::GetWorldTransform_Implementation
 (
 	UGripMotionControllerComponent* GrippingController, 
-	float DeltaTime, FTransform & WorldTransform, 
-	const FTransform &ParentTransform, 
-	FBPActorGripInformation &Grip, 
-	AActor * actor, 
-	UPrimitiveComponent * root, 
+	float DeltaTime, FTransform& WorldTransform, 
+	const FTransform& ParentTransform, 
+	FBPActorGripInformation& Grip, 
+	AActor* actor, 
+	UPrimitiveComponent* root, 
 	bool bRootHasInterface, 
 	bool bActorHasInterface, 
 	bool bIsForTeleport

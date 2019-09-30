@@ -2,8 +2,13 @@
 
 #pragma once
 
+// Unreal
 #include "CoreMinimal.h"
+
+// VREP
 #include "VRGripScriptBase.h"
+
+// UHeader Tool
 #include "GS_InteractibleSettings.generated.h"
 
 
@@ -90,15 +95,16 @@ class VREXPANSIONPLUGIN_API UGS_InteractibleSettings : public UVRGripScriptBase
 	GENERATED_BODY()
 public:
 
+	// Constructor & Destructor
+
 	UGS_InteractibleSettings(const FObjectInitializer& ObjectInitializer);
+	
+	// Functions
 
-	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InteractionSettings")
-	FBPGS_InteractionSettings InteractionSettings;
-
-	virtual void OnBeginPlay_Implementation(UObject * CallingOwner) override;
-	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent * GrippingController, float DeltaTime, FTransform & WorldTransform, const FTransform &ParentTransform, FBPActorGripInformation &Grip, AActor * actor, UPrimitiveComponent * root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
-	virtual void OnGrip_Implementation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation) override;
-	virtual void OnGripRelease_Implementation(UGripMotionControllerComponent * ReleasingController, const FBPActorGripInformation & GripInformation, bool bWasSocketed = false) override;
+	virtual bool GetWorldTransform_Implementation(UGripMotionControllerComponent* GrippingController, float DeltaTime, FTransform& WorldTransform, const FTransform& ParentTransform, FBPActorGripInformation& Grip, AActor* actor, UPrimitiveComponent* root, bool bRootHasInterface, bool bActorHasInterface, bool bIsForTeleport) override;
+	virtual void OnBeginPlay_Implementation(UObject* CallingOwner) override;
+	virtual void OnGrip_Implementation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation) override;
+	virtual void OnGripRelease_Implementation(UGripMotionControllerComponent* ReleasingController, const FBPActorGripInformation& GripInformation, bool bWasSocketed = false) override;
 
 	// Flags the the interaction settings so that it will regenerate removing the hand rotation.
 	// Use this if you just changed the relative hand transform.
@@ -109,7 +115,7 @@ public:
 		InteractionSettings.bHasValidBaseTransform = false;
 	}
 
-	inline void RemoveRelativeRotation(UGripMotionControllerComponent * GrippingController, const FBPActorGripInformation & GripInformation)
+	inline void RemoveRelativeRotation(UGripMotionControllerComponent* GrippingController, const FBPActorGripInformation& GripInformation)
 	{
 		InteractionSettings.BaseTransform = GripInformation.RelativeTransform;
 
@@ -123,4 +129,9 @@ public:
 		InteractionSettings.BaseTransform = compTrans.GetRelativeTransform(InteractionSettings.BaseTransform); // Set back to relative
 		InteractionSettings.bHasValidBaseTransform = true;
 	}
+
+	// Declares
+
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = "InteractionSettings")
+		FBPGS_InteractionSettings InteractionSettings;
 };

@@ -1,8 +1,9 @@
 // Copyright 1998-2016 Epic Games, Inc. All Rights Reserved.
 
 #pragma once
+
+// Unreal
 #include "CoreMinimal.h"
-#include "VRBaseCharacterMovementComponent.h"
 #include "AI/Navigation/NavigationAvoidanceTypes.h"
 #include "AI/RVOAvoidanceInterface.h"
 #include "AITypes.h"
@@ -17,6 +18,11 @@
 #include "Interfaces/NetworkPredictionInterface.h"
 #include "WorldCollision.h"
 #include "Runtime/Launch/Resources/Version.h"
+
+// VREP
+#include "VRBaseCharacterMovementComponent.h"
+
+// UHeader Tool
 #include "VRSimpleCharacterMovementComponent.generated.h"
 
 class FDebugDisplayInfo;
@@ -52,43 +58,29 @@ class VREXPANSIONPLUGIN_API UVRSimpleCharacterMovementComponent : public UVRBase
 {
 	GENERATED_BODY()
 public:
-
-	bool bIsFirstTick;
-	FVector curCameraLoc;
-	FRotator curCameraRot;
-
-	FVector lastCameraLoc;
-	FRotator lastCameraRot;
-
-	UPROPERTY(BlueprintReadOnly, Transient, Category = VRMovement)
-		UCapsuleComponent * VRRootCapsule;
-
-	UPROPERTY(BlueprintReadOnly, Transient, Category = VRMovement)
-		UCameraComponent * VRCameraComponent;
-
-	// Skips checking for the HMD location on tick, for 2D pawns when a headset is connected
-	UPROPERTY(BlueprintReadWrite, Category = VRMovement)
-		bool bSkipHMDChecks;
-
-	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
-	void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
-
-	void PhysWalking(float deltaTime, int32 Iterations) override;
-	void PhysFlying(float deltaTime, int32 Iterations) override;
-	void PhysFalling(float deltaTime, int32 Iterations) override;
-	void PhysNavWalking(float deltaTime, int32 Iterations) override;
+	
 	/**
 	* Default UObject constructor.
 	*/
+
+	// Constructor & Destructor
 	UVRSimpleCharacterMovementComponent(const FObjectInitializer& ObjectInitializer = FObjectInitializer::Get());
-
-	virtual bool VRClimbStepUp(const FVector& GravDir, const FVector& Delta, const FHitResult &InHit, FStepDownResult* OutStepDownResult = nullptr) override;
-
+	
+	// Functions
+	   
 	///////////////////////////
 	// Replication Functions
 	///////////////////////////
 	virtual void CallServerMove(const class FSavedMove_Character* NewMove, const class FSavedMove_Character* OldMove) override;
+
+	FNetworkPredictionData_Client* GetPredictionData_Client() const override;
+	FNetworkPredictionData_Server* GetPredictionData_Server() const override;
 	
+	void PhysFalling(float deltaTime, int32 Iterations) override;
+	void PhysFlying(float deltaTime, int32 Iterations) override;
+	void PhysNavWalking(float deltaTime, int32 Iterations) override;
+	void PhysWalking(float deltaTime, int32 Iterations) override;
+
 	// Use ServerMoveVR instead
 	virtual void ReplicateMoveToServer(float DeltaTime, const FVector& NewAcceleration) override;
 
@@ -106,17 +98,37 @@ public:
 
 	/** Replicated function sent by client to server - contains client movement and view info for two moves. First move is non root motion, second is root motion. */
 	//UFUNCTION(unreliable, server, WithValidation)
-		virtual void ServerMoveVRDualHybridRootMotion(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, FVRConditionalMoveRep OldConditionalReps, FVector_NetQuantize100 OldLFDiff, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, FVRConditionalMoveRep ConditionalReps, FVector_NetQuantize100 LFDiff, uint8 NewFlags, FVRConditionalMoveRep2 MoveReps, uint8 ClientMovementMode);
+	virtual void ServerMoveVRDualHybridRootMotion(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, FVRConditionalMoveRep OldConditionalReps, FVector_NetQuantize100 OldLFDiff, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, FVRConditionalMoveRep ConditionalReps, FVector_NetQuantize100 LFDiff, uint8 NewFlags, FVRConditionalMoveRep2 MoveReps, uint8 ClientMovementMode);
 	virtual void ServerMoveVRDualHybridRootMotion_Implementation(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, FVRConditionalMoveRep OldConditionalReps, FVector_NetQuantize100 OldLFDiff, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, FVRConditionalMoveRep ConditionalReps, FVector_NetQuantize100 LFDiff, uint8 NewFlags, FVRConditionalMoveRep2 MoveReps, uint8 ClientMovementMode);
 	virtual bool ServerMoveVRDualHybridRootMotion_Validate(float TimeStamp0, FVector_NetQuantize10 InAccel0, uint8 PendingFlags, uint32 View0, FVRConditionalMoveRep OldConditionalReps, FVector_NetQuantize100 OldLFDiff, float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, FVRConditionalMoveRep ConditionalReps, FVector_NetQuantize100 LFDiff, uint8 NewFlags, FVRConditionalMoveRep2 MoveReps, uint8 ClientMovementMode);
 
+	void SetUpdatedComponent(USceneComponent* NewUpdatedComponent) override;
+	void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 
-	FNetworkPredictionData_Client* GetPredictionData_Client() const override;
-	FNetworkPredictionData_Server* GetPredictionData_Server() const override;
+	virtual bool VRClimbStepUp(const FVector& GravDir, const FVector& Delta, const FHitResult& InHit, FStepDownResult* OutStepDownResult = nullptr) override;
 
 	///////////////////////////
 	// End Replication Functions
 	///////////////////////////
+
+	// Declares
+
+	bool bIsFirstTick;
+	FVector curCameraLoc;
+	FRotator curCameraRot;
+
+	FVector lastCameraLoc;
+	FRotator lastCameraRot;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = VRMovement)
+		UCapsuleComponent* VRRootCapsule;
+
+	UPROPERTY(BlueprintReadOnly, Transient, Category = VRMovement)
+		UCameraComponent* VRCameraComponent;
+
+	// Skips checking for the HMD location on tick, for 2D pawns when a headset is connected
+	UPROPERTY(BlueprintReadWrite, Category = VRMovement)
+		bool bSkipHMDChecks;
 };
 
 class VREXPANSIONPLUGIN_API FSavedMove_VRSimpleCharacter : public FSavedMove_VRBaseCharacter
